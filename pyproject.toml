@@ -8,7 +8,13 @@ packages = [{include = "uema_health"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
+streamlit-aggrid = "^0.3.3"
+requests = "^2.28.1"
+pandas = "^1.5.0"
 
+
+[tool.poetry.group.dev.dependencies]
+python-dotenv = "^0.21.0"
 
 [build-system]
 requires = ["poetry-core"]
