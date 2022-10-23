@@ -5,9 +5,11 @@ import requests
 import pandas as pd
 import streamlit as st
 from st_aggrid import AgGrid
+import plotly.express as px
 
 
-def get_health_df(item):
+@st.cache
+def request_health(item):
     url = f"https://api.ouraring.com/v2/usercollection/daily_{item}"
 
     end_date = date.today()
@@ -20,7 +22,7 @@ def get_health_df(item):
         "end_date": end_date.strftime("%Y-%m-%d")
     }
     headers = {
-        "Authorization": f"Bearer {os.getenv('TOKEN')}"
+        "Authorization": f"Bearer {os.getenv('OURA_TOKEN')}"
     }
 
     res = requests.request("GET", url, headers=headers, params=params)
@@ -31,20 +33,25 @@ def get_health_df(item):
     return df
 
 
+def get_health_df():
+    readiness_df = request_health("readiness")
+    readiness_df = readiness_df.rename(columns={"score": "readiness_score"})
+    sleep_df = request_health("sleep")
+    sleep_df = sleep_df.rename(columns={"score": "sleep_score"})
+    activity_df = request_health("activity")
+    activity_df = activity_df.rename(columns={"score": "activity_score"})
+    health_df = readiness_df.join([sleep_df, activity_df], how="outer")
+    health_df = health_df.fillna(0).sort_index()
+    return health_df, readiness_df, sleep_df, activity_df
+
+
 def main():
     today = date.today()
     str_today = today.strftime("%Y-%m-%d")
     yesterday = today - timedelta(days=1)
     str_yesterday = yesterday.strftime("%Y-%m-%d")
 
-    readiness_df = get_health_df("readiness")
-    readiness_df = readiness_df.rename(columns={"score": "readiness_score"})
-    sleep_df = get_health_df("sleep")
-    sleep_df = sleep_df.rename(columns={"score": "sleep_score"})
-    activity_df = get_health_df("activity")
-    activity_df = activity_df.rename(columns={"score": "activity_score"})
-    health_df = readiness_df.join([sleep_df, activity_df], how="outer")
-    health_df = health_df.fillna(0).sort_index()
+    health_df, readiness_df, sleep_df, activity_df = get_health_df()
 
     st.header("UEMA's Health Score")
     col1, col2, col3 = st.columns(3)
@@ -61,7 +68,12 @@ def main():
     yesterday_activity = int(activity_df.at[str_yesterday, "activity_score"])
     col3.metric("Today Activity Score",
                 today_activity, today_activity - yesterday_activity)
+    st.subheader("Default line chart")
     st.line_chart(health_df)
+    st.subheader("Line chart of Plotly")
+    fig = px.line(health_df, markers=True)
+    st.plotly_chart(fig)
+    st.subheader("AgGrid library")
     AgGrid(health_df.reset_index())
 
 
