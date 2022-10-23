@@ -4,7 +4,6 @@ version = "0.1.0"
 description = ""
 authors = ["Uemak <kanzi1234567890@gmail.com>"]
 readme = "README.md"
-packages = [{include = "uema_health"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
